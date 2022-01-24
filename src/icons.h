@@ -39,7 +39,7 @@
 #ifndef __ICONS_H
 #define __ICONS_H
 
-#define ICON48_ALIEN                0
+#define ICON48_ISSUE                0
 #define ICON48_FACE_HAPPY           1
 #define ICON48_FACE_NORMAL          2
 #define ICON48_FACE_UNHAPPY         3

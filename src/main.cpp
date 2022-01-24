@@ -8,7 +8,7 @@
 #include "epd1in54_V2.h"
 #include "epdpaint.h"
 
-//#define DEEP_SLEEP_MODE
+#define DEEP_SLEEP_MODE
 #ifdef DEEP_SLEEP_MODE
   #define SLEEP_TIME 300e6
   #define SLEEP_RESOLUTION StopWatch::MICROS
@@ -63,11 +63,10 @@ StopWatch stopWatch(SLEEP_RESOLUTION);
 
 #define MAX_WIFI_RETRY 25
 
-const char* hostname = "edomo154";
-IPAddress host_ip(192, 168, 0, 97); 
-IPAddress gateway_ip(192, 168, 0, 1);
+IPAddress hostIp(192, 168, 0, 97); 
+IPAddress gatewayIp(192, 168, 0, 1);
 IPAddress subnet(255, 255, 255, 0); 
-IPAddress domoticzpi_ip(192, 168, 0, 40);
+IPAddress domoticzpiIp(192, 168, 0, 40);
 const uint16_t httpPort = 80;
 
 String serverTime;
@@ -127,7 +126,7 @@ void worker() {
 
 void getDomoticzData(uint16_t idx)
 {
-  String url = String("http://") + domoticzpi_ip.toString() + F("/json.htm?type=devices&rid=") + idx;
+  String url = String(F("http://")) + domoticzpiIp.toString() + F("/json.htm?type=devices&rid=") + idx;
   
   httpClient.useHTTP10(true);
 
@@ -145,7 +144,7 @@ bool wifiConnect() {
   delay(1);
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
-  WiFi.config(host_ip, gateway_ip, subnet); // speed things up
+  WiFi.config(hostIp, gatewayIp, subnet); // speed things up
   WiFi.begin(ssid, password);
 
   uint8_t retryCount = MAX_WIFI_RETRY;
@@ -185,35 +184,41 @@ void getData()
 #endif
 
   DEBUG_PRINTLN(F("Client connect..."));
-  if (!wifiClient.connect(domoticzpi_ip, httpPort)) {    
+  if (!wifiClient.connect(domoticzpiIp, httpPort)) {    
     DEBUG_PRINTLN(F("ERROR: Client connection"));
     return;
-  }    
+  }  
+
+  JsonObject result;
 
   // inside - temperature
   getDomoticzData(IDX_LIVING_ROOM);
-  // first general stuff
-  serverTime = json["ServerTime"].as<String>();
-  serverTime = serverTime.substring(serverTime.indexOf(' ') + 1, serverTime.length() - 3); // only hh:mm part
-  sunriseTime = json["Sunrise"].as<String>();
-  sunsetTime = json["Sunset"].as<String>();
-   
-  insideTemperature = json["result"][0]["Temp"].as<String>();
-  insideHumidityStatus = mapHumidityStatus(json["result"][0]["HumidityStatus"].as<String>());
+  result = json[F("result")][0];
+  insideTemperature = result[F("Temp")].as<String>();
+  insideHumidityStatus = mapHumidityStatus(result[F("HumidityStatus")].as<String>());
   
+  // and some general stuff
+  serverTime = json[F("ServerTime")].as<String>();
+  serverTime = serverTime.substring(serverTime.indexOf(' ') + 1, serverTime.length() - 3); // only hh:mm part
+  sunriseTime = json[F("Sunrise")].as<String>();
+  sunsetTime = json[F("Sunset")].as<String>();
+     
   // inside - air quality
-  getDomoticzData(IDX_AIR_QUALITY);   
-  airQuality = json["result"][0]["Data"].as<String>();
+  getDomoticzData(IDX_AIR_QUALITY);
+  result = json[F("result")][0];
+  airQuality = result[F("Data")].as<String>();
   airQuality = airQuality.substring(0, airQuality.indexOf(' '));
-  airQualityDescription = mapAirQuality(json["result"][0]["Quality"].as<String>());
+  airQualityDescription = mapAirQuality(result[F("Quality")].as<String>());
 
   // outside - temperature
   getDomoticzData(IDX_GARDEN_TEMP);
-  outsideTemperature = json["result"][0]["Temp"].as<String>();  
+  result = json[F("result")][0];
+  outsideTemperature = result[F("Temp")].as<String>();  
 
   // outside - weather description
   getDomoticzData(IDX_OWM_DESCRIPTION);
-  outsideWeatherDescription = json["result"][0]["Data"].as<String>();
+  result = json[F("result")][0];
+  outsideWeatherDescription = result[F("Data")].as<String>();
 
   wifiDisconnect();  
 }
@@ -275,7 +280,7 @@ String mapHumidityStatus(String humidityStatus)
   else if (humidityStatus.equals(F("Wet")))
     return String(F("nat"));
     
-  return String(F(""));
+  return String(F("onbekend"));
 }
 
 
@@ -307,7 +312,7 @@ uint8_t GetWeatherIconIndex(String weatherDescription)
   else if (weatherDescription.indexOf(F("regen")) != -1)
     return ICON48_WEATHER_RAINY;
 
-  return ICON48_ALIEN;
+  return ICON48_ISSUE;
 }
 
 
@@ -315,8 +320,10 @@ uint8_t GetHumidityStatusIconIndex(String humidityStatus)
 {
   if (humidityStatus.equals(F("normaal")) || humidityStatus.equals(F("comfortabel")))
     return ICON48_FACE_HAPPY;
+  else if (humidityStatus.equals(F("droog")) || humidityStatus.equals(F("nat")))
+    return ICON48_FACE_UNHAPPY;
 
-  return ICON48_FACE_UNHAPPY;
+  return ICON48_ISSUE;
 }
 
 
@@ -329,5 +336,5 @@ uint8_t GetAirQualityIconIndex(String airQualityDescription)
   else if (airQualityDescription.equals(F("inferieur")) || airQualityDescription.equals(F("slecht")))
     return ICON48_ALERT;
 
-  return ICON48_ALIEN;
+  return ICON48_ISSUE;
 }
