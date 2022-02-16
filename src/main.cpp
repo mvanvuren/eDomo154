@@ -292,9 +292,9 @@ String mapAirQuality(String airQuality)
     return String(F("goed"));
   else if (airQuality.equals(F("Fair")))        
     return String(F("redelijk"));
-  else if (airQuality.equals(F("Inferior")))
-    return String(F("inferieur"));
-  else if (airQuality.equals(F("Inferior")))
+  else if (airQuality.equals(F("Mediocre")))
+    return String(F("matig"));
+  else if (airQuality.equals(F("Bad")))
     return String(F("slecht"));
     
   return String(F("onbekend"));
@@ -333,7 +333,7 @@ uint8_t GetAirQualityIconIndex(String airQualityDescription)
     return ICON48_FACE_HAPPY;
   else if (airQualityDescription.equals(F("redelijk")))
     return ICON48_FACE_NORMAL;
-  else if (airQualityDescription.equals(F("inferieur")) || airQualityDescription.equals(F("slecht")))
+  else if (airQualityDescription.equals(F("matig")) || airQualityDescription.equals(F("slecht")))
     return ICON48_ALERT;
 
   return ICON48_ISSUE;
